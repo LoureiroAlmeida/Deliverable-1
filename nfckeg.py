@@ -10,6 +10,8 @@ import time
 import notification
 import sensors
 
+import paho.mqtt.subscribe as subscribe
+
 # Create Logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -67,6 +69,7 @@ class nfckeg(object):
     def instance_objects(self):
         NFC_name = "NFC"
         Flow_name = "FLOW"
+        FlowESP_name = "ESP"
 
         if self.is_mock(self.implementation_nfc):
             self.NFC = sensors.mocksensor.NFCSensor(NFC_name)
@@ -77,10 +80,15 @@ class nfckeg(object):
             self.Flow_meter = sensors.mocksensor.FlowSensor(Flow_name)
         else:
             self.Flow_meter = sensors.realsensor.FlowSensor(Flow_name, self.pin)
+
         if self.is_mock(self.implementation_notify):
             self.notification = notification.MockNotification(self.token, self.chat_id, self.logger)
         else:
             self.notification = notification.TelegramNotification(self.token, self.chat_id, self.logger)
+
+        self.FlowSensorESP = sensors.realsensor.FlowSensorESP(FlowESP_name,self.logger)
+
+
 
     def is_mock(self, item):
         return item == 'mock'
@@ -96,8 +104,13 @@ class nfckeg(object):
 
             while True:
                 self.Flow_meter.setup()
+                self.FlowSensorESP.connect_mqtt()
                 data_FLOW = self.Flow_meter.get_data()
+                data_ESP = self.FlowSensorESP.get_data()
 
+                # If there is a flow on ESP, assign the quatity of beer to its NFC card.
+                if (data_ESP != 0)
+                    self.beer[data_NFC] = self.beer.get(data_NFC, 0) + data_ESP
                 # If there is a flow, assign the quantity of beer to its NFC card.
                 if (data_FLOW != 0):
                     self.beer[data_NFC] = self.beer.get(data_NFC, 0) + data_FLOW

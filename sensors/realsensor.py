@@ -63,3 +63,44 @@ class FlowSensor(NumericSensor):
 
     def reset_cumulative(self):
         self.flow_acumulative = 0.0
+
+
+
+
+class FlowSensorESP(NumericSensor):
+    """FlowSensorESP class"""
+    def __init__(self, name, logger):
+        super(FlowSensorESP, self).__init__(name)
+        self.logger = logger
+        self.data_flow = data_flow
+
+
+    # The callback for when the client receives a CONNACK response from the server.
+    def on_connect(self,client,userdata,flags,rc):
+        if rc == 0:
+            self.logger.debug('Well connected')
+        else:
+            self.logger.debug('Bad connection. Returned code: ',rc)
+        # Subscribing here mean that if we lose the connection and reconnect
+        # then subscriptions will be renewed.
+        client.subscribe("/sensor/FlowSensor")
+        #data_difference = client.subscribe("/sensor/FlowDifference")
+
+    # The callback for when a PUBLISH message is received from the server.
+    def on_message(self,client,userdata,message):
+        self.logger.debug('Message received')
+        self.data_flow = message.payload
+
+    def connect_mqtt(self):
+        client = mqtt.Client()
+        client.on_connect = self.on_connect
+        client.on_message = self.on_message
+        client.connect("192.168.43.110")
+        # In order not to block call that porcesses network traffic, we use loop_start
+        # that starts a new thread, that calls the loop method at regulars intervals for us.
+        # It also handles re-connects automatically.
+        client.loop_start()
+
+    def get_data(self):
+        data = self.data_flow
+        return data
